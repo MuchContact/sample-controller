@@ -20,7 +20,9 @@ set -o pipefail
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
-
+#SHELL_FOLDER=$(dirname $(readlink -f "$0"))
+echo "生成文件输出目录: $(pwd)"
+echo "依赖包路径 :$CODEGEN_PKG"
 # generate the code with:
 # --output-base    because this script should also be able to run inside the vendor dir of
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
@@ -28,8 +30,16 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-
 bash "${CODEGEN_PKG}"/generate-groups.sh "deepcopy,client,informer,lister" \
   k8s.io/sample-controller/pkg/generated k8s.io/sample-controller/pkg/apis \
   samplecontroller:v1alpha1 \
-  --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+  --output-base "$(pwd)" \
   --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
 
 # To use your own boilerplate text append:
 #   --go-header-file "${SCRIPT_ROOT}"/hack/custom-boilerplate.go.txt
+echo "move deepcopy"
+mv -f k8s.io/sample-controller/pkg/apis/samplecontroller/v1alpha1/xx_generated.deepcopy.go pkg/apis/samplecontroller/v1alpha1/zz_generated.deepcopy.go
+echo "delete old generated"
+rm -rf pkg/generated
+echo "move new generated"
+mv k8s.io/sample-controller/pkg/generated pkg/
+echo "clean caches"
+rm -rf k8s.io
